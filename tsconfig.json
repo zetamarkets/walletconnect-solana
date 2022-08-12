@@ -2,16 +2,7 @@
     "extends": "./tsconfig.root.json",
     "references": [
         {
-            "path": "./packages/app/create-react-app/tsconfig.root.json"
+            "path": "./packages/walletconnect-solana"
         },
-        {
-            "path": "./packages/app/parcel"
-        },
-        {
-            "path": "./packages/core/base"
-        },
-        {
-            "path": "./packages/ui/react"
-        }
     ]
 }
