@@ -51,31 +51,39 @@ export class WalletConnectWallet {
     }
 
     async connect(): Promise<WalletConnectWalletInit> {
-        const client = this._client ?? (await WalletConnectClient.init(this._options));
-        const sessions = client.find(getConnectParams(this._network)).filter((s) => s.acknowledged);
-        if (sessions.length) {
-            // select last matching session
-            this._session = sessions[sessions.length - 1];
-            // We assign this variable only after we're sure we've received approval
-            this._client = client;
-        } else {
-            const { uri, approval } = await client.connect(getConnectParams(this._network));
-            if (uri) {
-                QRCodeModal.open(uri, () => {
-                    throw new QRCodeModalError();
-                });
-            }
+        return new Promise((resolve, reject) => {
+            (async () => {
+                try {
+                    const client = this._client ?? (await WalletConnectClient.init(this._options));
+                    const sessions = client.find(getConnectParams(this._network)).filter((s) => s.acknowledged);
+                    if (sessions.length) {
+                        // select last matching session
+                        this._session = sessions[sessions.length - 1];
+                        // We assign this variable only after we're sure we've received approval
+                        this._client = client;
+                    } else {
+                        const { uri, approval } = await client.connect(getConnectParams(this._network));
+                        if (uri) {
+                            QRCodeModal.open(uri, () => {
+                                reject(new QRCodeModalError());
+                            });
+                        }
 
-            this._session = await approval();
-            // We assign this variable only after we're sure we've received approval
-            this._client = client;
+                        this._session = await approval();
+                        // We assign this variable only after we're sure we've received approval
+                        this._client = client;
 
-            QRCodeModal.close();
-        }
+                        QRCodeModal.close();
+                    }
 
-        return {
-            publicKey: this.publicKey,
-        };
+                    resolve({
+                        publicKey: this.publicKey,
+                    });
+                } catch (error) {
+                    reject(error);
+                }
+            })();
+        });
     }
 
     async disconnect() {
