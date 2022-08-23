@@ -42,8 +42,8 @@ const getConnectParams = (chainId: WalletConnectChainID, pairingTopic?: string):
 export class WalletConnectWallet {
     private _client: WalletConnectClient | undefined;
     private _session: SessionTypes.Struct | undefined;
-    private _network: WalletConnectChainID;
-    private _options: SignClientTypes.Options;
+    private readonly _network: WalletConnectChainID;
+    private readonly _options: SignClientTypes.Options;
 
     constructor(config: WalletConnectWalletAdapterConfig) {
         this._options = config.options;
@@ -51,31 +51,27 @@ export class WalletConnectWallet {
     }
 
     async connect(): Promise<WalletConnectWalletInit> {
-        const client = await WalletConnectClient.init(this._options);
+        const client = this._client ?? (await WalletConnectClient.init(this._options));
+        const sessions = client.find(getConnectParams(this._network)).filter((s) => s.acknowledged);
+        if (sessions.length) {
+            // select last matching session
+            this._session = sessions[sessions.length - 1];
+            // We assign this variable only after we're sure we've received approval
+            this._client = client;
+        } else {
+            const { uri, approval } = await client.connect(getConnectParams(this._network));
+            if (uri) {
+                QRCodeModal.open(uri, () => {
+                    throw new QRCodeModalError();
+                });
+            }
 
-        const pairings = client.pairing.getAll({ active: true });
-        // Prototypically, the user should be prompted to either:
-        // - Connect to a previously active pairing
-        // - Choose a new pairing
-        // There doesn't seem to be a WalletConnect-provided UI for this like there exists for the QRCode modal, though,
-        // and pushing this into user-land would be way too much
-        // If we decide to try and pair automatically, the UI will hang waiting for a pairing that might not complete
-        // const lastActivePairing = pairings.length ? pairings[pairings.length - 1].topic : undefined;
-        const lastActivePairing = undefined;
+            this._session = await approval();
+            // We assign this variable only after we're sure we've received approval
+            this._client = client;
 
-        const { uri, approval } = await client.connect(getConnectParams(this._network, lastActivePairing));
-
-        if (uri) {
-            QRCodeModal.open(uri, () => {
-                throw new QRCodeModalError();
-            });
+            QRCodeModal.close();
         }
-
-        this._session = await approval();
-        // We assign this variable only after we're sure we've received approval
-        this._client = client;
-
-        QRCodeModal.close();
 
         return {
             publicKey: this.publicKey,
@@ -84,10 +80,11 @@ export class WalletConnectWallet {
 
     async disconnect() {
         if (this._client && this._session) {
-            return await this._client.disconnect({
+            await this._client.disconnect({
                 topic: this._session.topic,
                 reason: getSdkError('USER_DISCONNECTED'),
             });
+            this._session = undefined;
         } else {
             throw new ClientNotInitializedError();
         }
@@ -95,7 +92,9 @@ export class WalletConnectWallet {
 
     get client(): WalletConnectClient {
         if (this._client) {
-            return this._client;
+            // TODO: using client.off throws an error
+            return Object.assign({}, this._client, { off: this._client.removeListener });
+            // return this._client;
         } else {
             throw new ClientNotInitializedError();
         }
