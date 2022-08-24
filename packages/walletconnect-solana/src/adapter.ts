@@ -77,12 +77,13 @@ export class WalletConnectWallet {
                         // We assign this variable only after we're sure we've received approval
                         this._client = client;
 
-                        QRCodeModal.close();
-
                         resolve({ publicKey: this.publicKey });
                     })
                     .catch((error) => {
                         reject(error);
+                    })
+                    .finally(() => {
+                        QRCodeModal.close();
                     });
             });
         }
