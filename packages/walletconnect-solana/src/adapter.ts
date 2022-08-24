@@ -79,9 +79,7 @@ export class WalletConnectWallet {
 
                         resolve({ publicKey: this.publicKey });
                     })
-                    .catch((error) => {
-                        reject(error);
-                    })
+                    .catch(reject)
                     .finally(() => {
                         QRCodeModal.close();
                     });
