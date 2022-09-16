@@ -10,6 +10,7 @@ importers:
       eslint: ^8.20.0
       eslint-config-prettier: ^8.5.0
       eslint-plugin-prettier: ^4.2.1
+      eslint-plugin-require-extensions: ^0.1.1
       pnpm: ^7.8.0
       prettier: ^2.7.1
       shx: ^0.3.4
@@ -21,6 +22,7 @@ importers:
       eslint: 8.21.0
       eslint-config-prettier: 8.5.0_eslint@8.21.0
       eslint-plugin-prettier: 4.2.1_h62lvancfh4b7r6zn2dgodrh5e
+      eslint-plugin-require-extensions: 0.1.1_eslint@8.21.0
       pnpm: 7.8.0
       prettier: 2.7.1
       shx: 0.3.4
