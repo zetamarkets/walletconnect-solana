@@ -2,7 +2,7 @@ import WalletConnectClient from '@walletconnect/sign-client';
 import QRCodeModal from '@walletconnect/qrcode-modal';
 import { PublicKey } from '@solana/web3.js';
 
-import { ClientNotInitializedError, QRCodeModalError } from './errors';
+import { ClientNotInitializedError, QRCodeModalError } from './errors.js';
 
 import type { EngineTypes, SessionTypes, SignClientTypes } from '@walletconnect/types';
 import type { Transaction } from '@solana/web3.js';
