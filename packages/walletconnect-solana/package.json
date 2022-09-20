@@ -1,6 +1,6 @@
 {
     "name": "@jnwng/walletconnect-solana",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "license": "Apache-2.0",
     "type": "module",
     "sideEffects": false,
@@ -22,10 +22,10 @@
     },
     "scripts": {
         "clean": "shx mkdir -p lib && shx rm -rf lib",
-        "prebuild": "pnpm run clean"
+        "package": "shx echo '{ \"type\": \"commonjs\" }' > lib/cjs/package.json"
     },
     "devDependencies": {
-        "@solana/web3.js": "1.50.1",
+        "@solana/web3.js": "^1.52.0",
         "@types/node-fetch": "^2.6.2",
         "@types/pino": "6.3.11",
         "@walletconnect/types": "2.0.0-rc.2",
