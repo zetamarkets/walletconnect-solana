@@ -1,11 +1,11 @@
-import type { Transaction } from "@solana/web3.js";
-import { PublicKey } from "@solana/web3.js";
-import QRCodeModal from "@walletconnect/qrcode-modal";
-import WalletConnectClient from "@walletconnect/sign-client";
-import type { EngineTypes, SessionTypes, SignClientTypes } from "@walletconnect/types";
-import { getSdkError, parseAccountId } from "@walletconnect/utils";
-import base58 from "bs58";
-import { ClientNotInitializedError, QRCodeModalError } from "./errors.js";
+import type { Transaction } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import QRCodeModal from '@walletconnect/qrcode-modal';
+import WalletConnectClient from '@walletconnect/sign-client';
+import type { EngineTypes, SessionTypes, SignClientTypes } from '@walletconnect/types';
+import { getSdkError, parseAccountId } from '@walletconnect/utils';
+import base58 from 'bs58';
+import { ClientNotInitializedError, QRCodeModalError } from './errors.js';
 
 export interface WalletConnectWalletAdapterConfig {
     network: WalletConnectChainID;
@@ -133,7 +133,7 @@ export class WalletConnectWallet {
 
     async signMessage(message: Uint8Array): Promise<Uint8Array> {
         if (this._client && this._session) {
-            const { signature } = await this._client.request({
+            const { signature } = await this._client.request<{ signature: string }>({
                 // The network does not change the output of message signing, but this is a required parameter for SignClient
                 chainId: this._network,
                 topic: this._session.topic,
