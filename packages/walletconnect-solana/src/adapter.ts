@@ -26,7 +26,7 @@ interface WalletConnectWalletInit {
     publicKey: PublicKey;
 }
 
-const getConnectParams = (chainId: WalletConnectChainID, pairingTopic?: string): EngineTypes.ConnectParams => ({
+const getConnectParams = (chainId: WalletConnectChainID): EngineTypes.FindParams => ({
     requiredNamespaces: {
         solana: {
             chains: [chainId],
@@ -34,7 +34,6 @@ const getConnectParams = (chainId: WalletConnectChainID, pairingTopic?: string):
             events: [],
         },
     },
-    pairingTopic,
 });
 
 export class WalletConnectWallet {
