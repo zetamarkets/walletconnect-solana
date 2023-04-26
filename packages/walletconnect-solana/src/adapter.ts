@@ -157,8 +157,12 @@ export class WalletConnectWallet {
                 request: {
                     method: WalletConnectRPCMethods.signTransaction,
                     params: {
-                        ...legacyTransaction, // Legacy sign transaction request format
-                        transaction: rawTransaction, // New base64-encoded serialized transaction request parameter
+                        // Passing ...legacyTransaction is deprecated.
+                        // All new clients should rely on transaction parameter.
+                        // The future versions will stop passing ...legacyTransaction.
+                        ...legacyTransaction,
+                        // New base64-encoded serialized transaction request parameter
+                        transaction: rawTransaction,
                     },
                 },
             });
