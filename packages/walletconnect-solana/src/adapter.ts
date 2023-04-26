@@ -119,30 +119,28 @@ export class WalletConnectWallet {
 
     async signTransaction<T extends Transaction | VersionedTransaction>(transaction: T): Promise<T> {
         if (this._client && this._session) {
+            let rawTransaction: string;
+            let legacyTransaction: Transaction | undefined;
+
             if (isVersionedTransaction(transaction)) {
-                const rawTransaction = Buffer.from(transaction.serialize()).toString('base64');
+                rawTransaction = Buffer.from(transaction.serialize()).toString('base64');
                 if (transaction.version === 'legacy') {
-                    // Build legacy transaction to send their fields as request params
-                    const legacyTransaction = Transaction.from(transaction.serialize());
-                    const signature = await this._signTransaction(rawTransaction, legacyTransaction);
-                    transaction.addSignature(this.publicKey, base58.decode(signature));
-                    return transaction;
-                } else {
-                    const signature = await this._signTransaction(rawTransaction);
-                    transaction.addSignature(this.publicKey, base58.decode(signature));
-                    return transaction;
+                    // Build Transaction for legacy sign transaction request format
+                    legacyTransaction = Transaction.from(transaction.serialize());
                 }
             } else {
-                const rawTransaction = transaction
+                rawTransaction = transaction
                     .serialize({
                         requireAllSignatures: false,
                         verifySignatures: false,
                     })
                     .toString('base64');
-                const signature = await this._signTransaction(rawTransaction, transaction);
-                transaction.addSignature(this.publicKey, Buffer.from(base58.decode(signature)));
-                return transaction;
+                legacyTransaction = transaction;
             }
+
+            const signature = await this._signTransaction(rawTransaction, legacyTransaction);
+            transaction.addSignature(this.publicKey, Buffer.from(base58.decode(signature)));
+            return transaction;
         } else {
             throw new ClientNotInitializedError();
         }
