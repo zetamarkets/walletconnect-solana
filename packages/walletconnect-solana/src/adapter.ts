@@ -120,13 +120,15 @@ export class WalletConnectWallet {
     async signTransaction<T extends Transaction | VersionedTransaction>(transaction: T): Promise<T> {
         if (this._client && this._session) {
             let rawTransaction: string;
-            let legacyTransaction: Transaction | undefined;
+            let legacyTransaction: Transaction | VersionedTransaction | undefined;
 
             if (isVersionedTransaction(transaction)) {
                 rawTransaction = Buffer.from(transaction.serialize()).toString('base64');
                 if (transaction.version === 'legacy') {
                     // Build Transaction for legacy sign transaction request format
                     legacyTransaction = Transaction.from(transaction.serialize());
+                } else {
+                    legacyTransaction = VersionedTransaction.deserialize(transaction.serialize());
                 }
             } else {
                 rawTransaction = transaction
@@ -148,7 +150,7 @@ export class WalletConnectWallet {
 
     private async _signTransaction(
         rawTransaction: string,
-        legacyTransaction?: Transaction | undefined
+        legacyTransaction?: Transaction | VersionedTransaction | undefined
     ): Promise<string> {
         if (this._client && this._session) {
             const { signature } = await this._client.request<{ signature: string }>({
