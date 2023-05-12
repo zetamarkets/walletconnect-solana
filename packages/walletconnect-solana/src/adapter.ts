@@ -123,12 +123,12 @@ export class WalletConnectWallet {
             let legacyTransaction: Transaction | VersionedTransaction | undefined;
 
             if (isVersionedTransaction(transaction)) {
+                // V0 transactions are serialized and passed in the `transaction` property
                 rawTransaction = Buffer.from(transaction.serialize()).toString('base64');
+
                 if (transaction.version === 'legacy') {
-                    // Build Transaction for legacy sign transaction request format
+                    // For backwards-compatible, legacy transactions are spread in the params
                     legacyTransaction = Transaction.from(transaction.serialize());
-                } else {
-                    legacyTransaction = VersionedTransaction.deserialize(transaction.serialize());
                 }
             } else {
                 rawTransaction = transaction
@@ -140,19 +140,6 @@ export class WalletConnectWallet {
                 legacyTransaction = transaction;
             }
 
-            const signature = await this._signTransaction(rawTransaction, legacyTransaction);
-            transaction.addSignature(this.publicKey, Buffer.from(base58.decode(signature)));
-            return transaction;
-        } else {
-            throw new ClientNotInitializedError();
-        }
-    }
-
-    private async _signTransaction(
-        rawTransaction: string,
-        legacyTransaction?: Transaction | VersionedTransaction | undefined
-    ): Promise<string> {
-        if (this._client && this._session) {
             const { signature } = await this._client.request<{ signature: string }>({
                 chainId: this._network,
                 topic: this._session.topic,
@@ -160,7 +147,7 @@ export class WalletConnectWallet {
                     method: WalletConnectRPCMethods.signTransaction,
                     params: {
                         // Passing ...legacyTransaction is deprecated.
-                        // All new clients should rely on transaction parameter.
+                        // All new clients should rely on the `transaction` parameter.
                         // The future versions will stop passing ...legacyTransaction.
                         ...legacyTransaction,
                         // New base64-encoded serialized transaction request parameter
@@ -168,7 +155,9 @@ export class WalletConnectWallet {
                     },
                 },
             });
-            return signature;
+            transaction.addSignature(this.publicKey, Buffer.from(base58.decode(signature)));
+
+            return transaction;
         } else {
             throw new ClientNotInitializedError();
         }
