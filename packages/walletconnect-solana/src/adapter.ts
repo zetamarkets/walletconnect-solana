@@ -1,5 +1,4 @@
-import type { Transaction } from '@solana/web3.js';
-import { PublicKey } from '@solana/web3.js';
+import { Transaction, VersionedTransaction, PublicKey } from '@solana/web3.js';
 import QRCodeModal from '@walletconnect/qrcode-modal';
 import WalletConnectClient from '@walletconnect/sign-client';
 import type { EngineTypes, SessionTypes, SignClientTypes } from '@walletconnect/types';
@@ -35,6 +34,9 @@ const getConnectParams = (chainId: WalletConnectChainID): EngineTypes.FindParams
         },
     },
 });
+
+const isVersionedTransaction = (transaction: Transaction | VersionedTransaction): transaction is VersionedTransaction =>
+    'version' in transaction;
 
 export class WalletConnectWallet {
     private _client: WalletConnectClient | undefined;
@@ -115,12 +117,43 @@ export class WalletConnectWallet {
         }
     }
 
-    async signTransaction(transaction: Transaction): Promise<Transaction> {
+    async signTransaction<T extends Transaction | VersionedTransaction>(transaction: T): Promise<T> {
         if (this._client && this._session) {
+            let rawTransaction: string;
+            let legacyTransaction: Transaction | VersionedTransaction | undefined;
+
+            if (isVersionedTransaction(transaction)) {
+                // V0 transactions are serialized and passed in the `transaction` property
+                rawTransaction = Buffer.from(transaction.serialize()).toString('base64');
+
+                if (transaction.version === 'legacy') {
+                    // For backwards-compatible, legacy transactions are spread in the params
+                    legacyTransaction = Transaction.from(transaction.serialize());
+                }
+            } else {
+                rawTransaction = transaction
+                    .serialize({
+                        requireAllSignatures: false,
+                        verifySignatures: false,
+                    })
+                    .toString('base64');
+                legacyTransaction = transaction;
+            }
+
             const { signature } = await this._client.request<{ signature: string }>({
                 chainId: this._network,
                 topic: this._session.topic,
-                request: { method: WalletConnectRPCMethods.signTransaction, params: { ...transaction } },
+                request: {
+                    method: WalletConnectRPCMethods.signTransaction,
+                    params: {
+                        // Passing ...legacyTransaction is deprecated.
+                        // All new clients should rely on the `transaction` parameter.
+                        // The future versions will stop passing ...legacyTransaction.
+                        ...legacyTransaction,
+                        // New base64-encoded serialized transaction request parameter
+                        transaction: rawTransaction,
+                    },
+                },
             });
             transaction.addSignature(this.publicKey, Buffer.from(base58.decode(signature)));
 
