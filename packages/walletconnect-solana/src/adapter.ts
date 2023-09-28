@@ -1,5 +1,5 @@
 import { Transaction, VersionedTransaction, PublicKey } from '@solana/web3.js';
-import QRCodeModal from '@walletconnect/qrcode-modal';
+import { WalletConnectModal } from '@walletconnect/modal';
 import WalletConnectClient from '@walletconnect/sign-client';
 import type { EngineTypes, SessionTypes, SignClientTypes } from '@walletconnect/types';
 import { getSdkError, parseAccountId } from '@walletconnect/utils';
@@ -52,6 +52,10 @@ export class WalletConnectWallet {
     async connect(): Promise<WalletConnectWalletInit> {
         const client = this._client ?? (await WalletConnectClient.init(this._options));
         const sessions = client.find(getConnectParams(this._network)).filter((s) => s.acknowledged);
+        const modal = new WalletConnectModal({
+            chains: [WalletConnectChainID.Mainnet, WalletConnectChainID.Devnet],
+            projectId: this._options.projectId ?? '',
+        });
         if (sessions.length) {
             // select last matching session
             this._session = sessions[sessions.length - 1];
@@ -63,11 +67,17 @@ export class WalletConnectWallet {
             };
         } else {
             const { uri, approval } = await client.connect(getConnectParams(this._network));
+
             return new Promise((resolve, reject) => {
-                if (uri) {
-                    QRCodeModal.open(uri, () => {
+                const unsubscribe = modal.subscribeModal((modalState) => {
+                    if (!modalState.open) {
+                        unsubscribe();
                         reject(new QRCodeModalError());
-                    });
+                    }
+                });
+
+                if (uri) {
+                    modal.openModal({ uri });
                 }
 
                 approval()
@@ -80,7 +90,8 @@ export class WalletConnectWallet {
                     })
                     .catch(reject)
                     .finally(() => {
-                        QRCodeModal.close();
+                        unsubscribe();
+                        modal.closeModal();
                     });
             });
         }
